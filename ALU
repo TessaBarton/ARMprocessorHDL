@@ -1,0 +1,47 @@
+module Lab5_tb( input logic [31:0] a, b,
+				input logic [1:0] ALUControl,
+				output logic [32:0] Result,
+				output logic [3:0] Flags);
+				
+				// adder
+				logic [31:0] sum, binput;
+				logic [32:0] provsum; // intermediate sum before we get rid of the carry out.
+				logic cin,cout;
+				
+				assign binput = ALUControl[0] ? b : ~b; // based upon what ALU control tells us about addition/ subtraction, assign b
+				assign cin = ALUControl[0] ? ALUControl[0] : ~ALUControl[0]; // assign carry in, based upon signal
+				assign provsum = a + binput + cin;
+				assign sum = provsum[31:1];
+				assign cout = provsum[32];
+
+				
+				// ander- orer
+				logic [31:0] nodeAnd, nodeOr;
+				assign nodeAnd = a & b;
+				assign nodeOr  = a | b;
+				
+				logic sflags; // provisional flags which tell us which operation has occured. not really needed
+				
+				always @(sum or nodeAnd or nodeOr or ALUControl)
+				begin
+				case (ALUControl)
+				2'b00: Result = sum ;  // oo specifies we want the sum
+				2'b00:		 sflags = 1'd1; // sflags set to 1 indicateing sum
+				2'b01: Result  = sum; // same
+				2'b01:		sflags = 1'd1;
+				2'b10: Result = nodeAnd;
+				2'b10:			sflags = 1'd2; //indicates we did an and
+				2'b11: Result = nodeOr;
+				2'b11:			sflags = 1'd3; // indicates we did an or
+				endcase
+				end
+				
+				
+				assign Flags[1] = (cout == 0 & sflags==1) ?  0 :  1; // if we have not carry out when doing a sum, set/ don't set the carry flag
+				
+				assign Flags[0] = (a[31] !== b[31] & Flags[1] & (sflags==1) )? 1: 0; // overflow if the sign on a and b are different and we did a sum and th esum resulted in a carry out
+				assign Flags[3] = ((sum[31] == 1)&(sflags==1))? 1 : 0; // is the result negative? QUESTION: if we are doing an or do we set the negative result flag???
+				assign Flags[2] = (sum == 'h00000000) ? 1 : 0; // is the result 0? 
+				
+endmodule
+				
